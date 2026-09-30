@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>引っ越し やることリスト【期限つき・自動作成】｜役所の手続き・ライフライン・ネット回線</title>
+<meta name="description" content="引越し日を入れるだけで、引っ越し前後にやること（引越し業者・解約連絡・ネット回線・転出届・転入届・マイナンバーカード・運転免許証・電気ガス水道・郵便の転送など）を期限つきのチェックリストで自動作成する無料ツールです。">
+<link rel="canonical" href="https://harryquad.github.io/hikkoshi/yarukoto/">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.group{margin-top:18px}.group h3{font-size:1rem;margin:0 0 8px}
+.item{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.item input{margin-top:5px;width:18px;height:18px;flex:none}
+.item .body{flex:1}.item .ttl{font-weight:600}.item .due{font-size:.85rem;color:var(--warn);font-weight:700}.item .desc{font-size:.88rem;color:var(--muted)}
+.item.done .ttl{text-decoration:line-through;color:var(--muted)}
+.progress{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin-top:6px}.progress div{height:100%;background:var(--good);width:0}
+</style>
+</head>
+<body>
+<header class="site-header"><div><a href="/hikkoshi/">引っ越し・賃貸 かんたん計算</a></div></header>
+<div class="wrap">
+  <h1>引っ越し やることリスト</h1>
+  <p class="lead">引越し日と状況を選ぶと、<strong>引っ越し前後にやること</strong>を<strong>期限つき</strong>のチェックリストにします。チェックした内容はこのブラウザに保存されます。</p>
+
+  <div class="card">
+    <div class="field"><label for="date">引越し日</label><input type="date" id="date"></div>
+    <div class="field"><label for="area">引越し先</label>
+      <select id="area"><option value="other">別の市区町村</option><option value="same">同じ市区町村の中</option></select></div>
+    <div class="field">
+      <div class="checks">
+        <label><input type="checkbox" id="rental" checked>今の家は賃貸</label>
+        <label><input type="checkbox" id="car">車・バイクを持っている</label>
+        <label><input type="checkbox" id="kids">子どもがいる（学校・保育園・児童手当）</label>
+        <label><input type="checkbox" id="kokuho">国民健康保険・国民年金に加入している</label>
+      </div>
+    </div>
+    <button id="make">リストを作る</button>
+  </div>
+
+  <div class="card" id="result" hidden></div>
+
+  <div class="ad">広告スペース</div>
+
+  <div class="card faq">
+    <h2>引っ越しの手続きのよくある質問</h2>
+    <h3>いちばん早くやるべきことは？</h3>
+    <p>引越し業者の予約と、今の家の解約連絡です。解約は「退去の1か月前まで」と決まっている賃貸が多く、遅れると家賃が余計にかかります。インターネット回線も、工事が必要な場合は申し込みから開通まで2〜4週間以上かかることがあるので、早めに申し込みましょう。</p>
+    <h3>転出届と転入届の期限は？</h3>
+    <p>別の市区町村に引っ越す場合、転出届は引越しの14日前くらいから出せます（マイナンバーカードがあればオンラインでも可能）。転入届は、引っ越してから14日以内に新しい住所の市区町村に出します。同じ市区町村の中なら、転居届を引っ越してから14日以内に出します。</p>
+    <h3>マイナンバーカードの住所変更は？</h3>
+    <p>転入届（転居届）と同じときに、窓口で住所の書き換えをしてもらいます。転入届を出した日から90日以内に手続きをしないと、カードが使えなくなるので注意しましょう。</p>
+  </div>
+
+  <div class="card" id="related"></div>
+
+  <footer>一般的な手続きの目安です。必要な手続きや期限は、市区町村や契約先によって異なる場合があります。</footer>
+</div>
+
+<script src="../assets/site.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const STORE = "hikkoshi-yarukoto";
+let checked = {};
+try { checked = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch { checked = {}; }
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(checked)); } catch {} };
+const tt = new Date();
+$("date").value = ymd(new Date(tt.getFullYear(), tt.getMonth() + 2, 1));
+
+function build(D) {
+  const at = n => fmtDate(addDays(D, n));
+  const other = $("area").value === "other";
+  const g = [];
+  const before1m = [
+    { id: "gyosha", t: "引越し業者を決める（見積もりを比べる）", due: `${at(-30)}ごろまで`, d: "複数の業者に一括で見積もりを依頼して比べると安くなりやすいです。繁忙期（2〜4月）はもっと早めに。" },
+    { id: "net", t: "新居のインターネット回線を申し込む", due: `${at(-30)}ごろまで`, d: "工事が必要な場合、開通まで2〜4週間以上かかることがあります。今の回線を解約するか、移転するかも決めましょう。" },
+  ];
+  if ($("rental").checked) before1m.unshift({ id: "kaiyaku", t: "今の家の解約を管理会社に連絡", due: `${at(-30)}まで（契約書の予告期間を確認）`, d: "多くの賃貸は退去の1か月前までに連絡が必要です。退去の立ち会い日も決めます。" });
+  if ($("kids").checked) before1m.push({ id: "school", t: "学校・保育園に転校・転園を伝える", due: `${at(-30)}ごろまで`, d: "在学証明書・教科書給与証明書などを受け取ります。" });
+  g.push({ h: "1か月前まで", items: before1m });
+
+  const before2w = [
+    { id: "sodai", t: "粗大ごみの回収を予約する・不用品を処分する", due: `${at(-14)}ごろまで`, d: "自治体の粗大ごみは予約が埋まりやすいので早めに。" },
+    { id: "life", t: "電気・ガス・水道の停止と開始の連絡", due: `${at(-7)}ごろまで`, d: "ガスの開栓は立ち会いが必要なので、新居での予約をしておきます。" },
+    { id: "yubin", t: "郵便局に転居届（転送サービス）を出す", due: `${at(-7)}ごろまで`, d: "1年間、旧住所あての郵便を新住所に転送してくれます。インターネット（e転居）でも出せます。" },
+  ];
+  if (other) before2w.unshift({ id: "tenshutsu", t: "今の市区町村に転出届を出す", due: `${at(-14)}〜${at(0)}（引越し後14日以内も可）`, d: "マイナンバーカードがあれば、マイナポータルからオンラインで出せます。" });
+  g.push({ h: "2週間前〜前日", items: before2w });
+
+  g.push({ h: "引越し当日", items: [
+    { id: "tachiai", t: "旧居の退去立ち会い・鍵の返却", due: at(0), d: "部屋の傷や汚れを一緒に確認します。入居時の写真があると安心です。" },
+    { id: "gas", t: "新居のガスの開栓立ち会い・電気のブレーカーを上げる", due: at(0), d: "" },
+  ]});
+
+  const after = [
+    { id: "tennyu", t: other ? "新しい市区町村に転入届を出す" : "市区町村に転居届を出す", due: `${at(14)}まで`, d: "引っ越してから14日以内。" },
+    { id: "mynumber", t: "マイナンバーカードの住所変更", due: `${at(14)}まで（転入届と同時）`, d: "転入届を出した日から90日以内に手続きしないとカードが使えなくなります。" },
+    { id: "license", t: "運転免許証の住所変更", due: "できるだけ早く", d: "警察署・運転免許センターで手続きします。本人確認書類としても使うので早めに。" },
+    { id: "others", t: "銀行・クレジットカード・携帯電話・保険などの住所変更", due: `${at(30)}ごろまで`, d: "" },
+  ];
+  if ($("kokuho").checked) after.push({ id: "kokuho", t: "国民健康保険・国民年金の住所変更（加入）", due: `${at(14)}まで`, d: "別の市区町村へ引っ越した場合は、新しい市区町村で国民健康保険に加入し直します。" });
+  if ($("kids").checked) after.push({ id: "jido", t: "児童手当の手続き", due: `${at(15)}まで`, d: "別の市区町村へ引っ越した場合、新しい市区町村に申請します。15日以内に手続きしないと、もらえない月が出ることがあります。" });
+  if ($("car").checked) after.push({ id: "shako", t: "車庫証明と車検証の住所変更", due: `${at(15)}まで`, d: "車検証の住所変更は、引っ越してから15日以内に運輸支局で行います（軽自動車は軽自動車検査協会）。" });
+  g.push({ h: "引越し後", items: after });
+  return g;
+}
+
+function render() {
+  const out = $("result");
+  out.hidden = false;
+  const D = parseDate($("date").value);
+  if (!D) { out.innerHTML = '<p class="err">引越し日を入力してください。</p>'; return; }
+  const groups = build(D);
+  const all = groups.flatMap(g => g.items);
+  out.innerHTML = `<h2>あなたのやることリスト（全${all.length}件）</h2>
+    <div class="hint" id="count"></div><div class="progress"><div id="bar"></div></div>
+    ${groups.map(g => `<div class="group"><h3>${g.h}</h3>${g.items.map(i => `
+      <label class="item ${checked[i.id] ? "done" : ""}" data-id="${i.id}"><input type="checkbox" ${checked[i.id] ? "checked" : ""}>
+        <div class="body"><div class="ttl">${i.t}</div><div class="due">期限：${i.due}</div>${i.d ? `<div class="desc">${i.d}</div>` : ""}</div></label>`).join("")}</div>`).join("")}
+    <p class="note">チェックの状態はこのブラウザに保存されます。</p>`;
+  const update = () => {
+    const done = all.filter(i => checked[i.id]).length;
+    $("count").textContent = `${done} / ${all.length} 件 完了`;
+    $("bar").style.width = `${done / all.length * 100}%`;
+  };
+  out.querySelectorAll(".item input").forEach(cb => cb.addEventListener("change", () => {
+    const item = cb.closest(".item");
+    checked[item.dataset.id] = cb.checked; item.classList.toggle("done", cb.checked); save(); update();
+  }));
+  update();
+  out.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("make").addEventListener("click", render);
+</script>
+</body>
+</html>

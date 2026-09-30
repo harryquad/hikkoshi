@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>賃貸の初期費用 計算シミュレーション｜敷金・礼金・仲介手数料・前家賃・日割りの総額は？</title>
+<meta name="description" content="家賃と入居日を入れるだけで、賃貸契約の初期費用（敷金・礼金・仲介手数料・前家賃・日割り家賃・保証会社・火災保険・鍵交換）の総額を計算。家賃の何か月分か、どこを交渉すれば安くなるかもわかる無料ツールです。">
+<link rel="canonical" href="https://harryquad.github.io/hikkoshi/">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site-header"><div><a href="/hikkoshi/">引っ越し・賃貸 かんたん計算</a></div></header>
+<div class="wrap">
+  <h1>賃貸の初期費用 計算シミュレーション</h1>
+  <p class="lead">家賃と入居日を入れると、賃貸契約のときに払う<strong>初期費用の総額</strong>を計算します。敷金・礼金・仲介手数料・前家賃・日割り家賃・保証会社・火災保険・鍵交換まで、項目ごとの内訳もわかります。</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field"><label for="rent">家賃（月額）</label><input type="number" id="rent" min="0" value="80000"><div class="hint">円単位</div></div>
+      <div class="field"><label for="fee">管理費・共益費（月額）</label><input type="number" id="fee" min="0" value="5000"><div class="hint">円単位</div></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="shiki">敷金（家賃の何か月分）</label><input type="number" id="shiki" min="0" step="0.5" value="1"></div>
+      <div class="field"><label for="rei">礼金（家賃の何か月分）</label><input type="number" id="rei" min="0" step="0.5" value="1"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="chukai">仲介手数料（家賃の何か月分）</label>
+        <select id="chukai"><option value="1">1か月分（＋消費税）</option><option value="0.5">0.5か月分（＋消費税）</option><option value="0">無料</option></select></div>
+      <div class="field"><label for="hosho">保証会社の初回保証料（家賃＋管理費の何％）</label><input type="number" id="hosho" min="0" max="200" value="50">
+        <div class="hint">保証会社を使わない場合は0</div></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="date">入居日（家賃が発生する日）</label><input type="date" id="date"></div>
+      <div class="field"><label for="mae">前家賃の払い方</label>
+        <select id="mae"><option value="both">入居月の日割り＋翌月分</option><option value="hiwari">入居月の日割りだけ</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="kasai">火災保険（2年分）</label><input type="number" id="kasai" min="0" value="18000"><div class="hint">円単位</div></div>
+      <div class="field"><label for="kagi">鍵交換費用</label><input type="number" id="kagi" min="0" value="20000"><div class="hint">円単位</div></div>
+    </div>
+    <div class="field"><label for="other">そのほか（消毒・サポート料など）</label><input type="number" id="other" min="0" value="0"><div class="hint">円単位</div></div>
+    <button id="calc">初期費用を計算する</button>
+  </div>
+
+  <div class="card" id="result" hidden></div>
+
+  <div class="ad">広告スペース</div>
+
+  <div class="card faq">
+    <h2>賃貸の初期費用のよくある質問</h2>
+    <h3>初期費用は家賃の何か月分？</h3>
+    <p>一般的には家賃の4〜6か月分が目安です。敷金・礼金がない物件なら3か月分前後に下がることもあります。引越し代や家具・家電の購入費は別にかかるので、あわせて準備しておきましょう。</p>
+    <h3>仲介手数料は必ず1か月分？</h3>
+    <p>法律（宅地建物取引業法）で、仲介手数料の上限は家賃の1か月分＋消費税と決められています。居住用の物件では、借主の承諾がない場合は0.5か月分＋消費税が上限です。契約前に確認・相談してみましょう。</p>
+    <h3>初期費用を安くするには？</h3>
+    <p>礼金なし・敷金なしの物件を選ぶ、仲介手数料が安い不動産会社を選ぶ、入居日を月末近くにして前家賃の日割りを減らす、鍵交換やサポート料などの任意のオプションを外してもらう、といった方法があります。</p>
+  </div>
+
+  <div class="card" id="related"></div>
+
+  <footer>入力した条件にもとづく計算です。日割り家賃は入居月の日数で計算しています。実際の金額は物件・不動産会社によって異なります。</footer>
+</div>
+
+<script src="assets/site.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const tt = new Date();
+$("date").value = ymd(new Date(tt.getFullYear(), tt.getMonth() + 1, 15));
+
+function calc() {
+  const out = $("result");
+  out.hidden = false;
+  const rent = num("rent"), fee = num("fee");
+  const d = parseDate($("date").value);
+  if (!rent || !d) { out.innerHTML = '<p class="err">家賃と入居日を入力してください。</p>'; return; }
+  const monthly = rent + fee;
+  const days = daysInMonth(d), stay = days - d.getDate() + 1;
+  const hiwari = Math.floor(monthly * stay / days);
+  const next = $("mae").value === "both" ? monthly : 0;
+  const items = [
+    ["敷金", rent * num("shiki"), "退去時に修繕費などを差し引いて返ってくるお金"],
+    ["礼金", rent * num("rei"), "大家さんへのお礼。返ってこない"],
+    ["仲介手数料", Math.floor(rent * Number($("chukai").value) * 1.1), "不動産会社への手数料（消費税込み）"],
+    [`日割り家賃（${d.getMonth() + 1}月${d.getDate()}日〜月末の${stay}日分）`, hiwari, "家賃＋管理費を日割り"],
+    ["翌月分の前家賃", next, "家賃＋管理費の1か月分"],
+    ["保証会社の初回保証料", Math.floor(monthly * num("hosho") / 100), "連帯保証人の代わり"],
+    ["火災保険", num("kasai"), ""], ["鍵交換費用", num("kagi"), ""], ["そのほか", num("other"), ""],
+  ].filter(i => i[1] > 0);
+  const total = items.reduce((s, i) => s + i[1], 0);
+  const back = rent * num("shiki");
+
+  out.innerHTML = `
+    <div class="big">
+      <div class="stat warn"><div class="k">初期費用の合計</div><div class="v">${yen(total)}</div></div>
+      <div class="stat"><div class="k">家賃の何か月分</div><div class="v">${(total / rent).toFixed(1)}か月分</div></div>
+      <div class="stat"><div class="k">うち返ってくる可能性がある額（敷金）</div><div class="v">${yen(back)}</div></div>
+    </div>
+    <table class="info">${items.map(i => `<tr><td>${i[0]}${i[2] ? `<br><small style="color:var(--muted)">${i[2]}</small>` : ""}</td><td class="num">${yen(i[1])}</td></tr>`).join("")}
+      <tr><td><strong>合計</strong></td><td class="num"><strong>${yen(total)}</strong></td></tr></table>
+    <p class="note">このほかに、<strong>引越し代</strong>（単身で5〜10万円、家族で10〜25万円が目安）と、家具・家電の費用がかかります → <a href="/hikkoshi/hiyou/">引越し費用の目安</a></p>
+    <p class="note">入居したらすぐ使えるように、<strong>インターネット回線</strong>の申し込みは入居の1か月前までに済ませておくのがおすすめです → <a href="/hikkoshi/yarukoto/">引っ越し やることリスト</a></p>`;
+  out.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("calc").addEventListener("click", calc);
+</script>
+</body>
+</html>

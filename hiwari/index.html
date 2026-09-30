@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日割り家賃 計算ツール｜入居日・退去日から今月の家賃を計算（管理費込み）</title>
+<meta name="description" content="家賃と入居日（または退去日）を入れるだけで、月の途中で入居・退去したときの日割り家賃を計算。月の日数で割る方法と30日で割る方法の両方に対応し、管理費・共益費も含められる無料ツールです。">
+<link rel="canonical" href="https://harryquad.github.io/hikkoshi/hiwari/">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="site-header"><div><a href="/hikkoshi/">引っ越し・賃貸 かんたん計算</a></div></header>
+<div class="wrap">
+  <h1>日割り家賃 計算ツール</h1>
+  <p class="lead">月の途中で<strong>入居</strong>または<strong>退去</strong>するときの、その月の<strong>日割り家賃</strong>を計算します。</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field"><label for="type">計算したいもの</label>
+        <select id="type"><option value="in">入居した月の家賃（入居日〜月末）</option><option value="out">退去する月の家賃（月初〜退去日）</option></select></div>
+      <div class="field"><label for="date" id="dateLabel">入居日</label><input type="date" id="date"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="rent">家賃（月額）</label><input type="number" id="rent" min="0" value="75000"><div class="hint">円単位</div></div>
+      <div class="field"><label for="fee">管理費・共益費（月額）</label><input type="number" id="fee" min="0" value="5000"><div class="hint">円単位。日割りしない契約なら0</div></div>
+    </div>
+    <div class="field"><label for="base">日割りの計算方法</label>
+      <select id="base"><option value="month">その月の日数で割る（28〜31日）</option><option value="30">30日で割る</option><option value="365">1年（365日）で割る</option></select>
+      <div class="hint">契約書に書いてある方法を選んでください。わからない場合は「その月の日数」が一般的です</div></div>
+    <button id="calc">計算する</button>
+  </div>
+
+  <div class="card" id="result" hidden></div>
+
+  <div class="ad">広告スペース</div>
+
+  <div class="card faq">
+    <h2>日割り家賃のよくある質問</h2>
+    <h3>日割り家賃はいつ払う？</h3>
+    <p>入居月の日割り家賃は、ふつう契約時の初期費用と一緒に払います。月末近くに入居する場合は、翌月分の家賃もまとめて払うことが多いです。</p>
+    <h3>退去するときも日割りになる？</h3>
+    <p>契約によって違います。日割りの契約なら退去日までの分、「月割り」の契約なら退去日が月の途中でも1か月分がかかります。また、解約の連絡は「退去の1か月前まで」と決まっていることが多いので、早めに管理会社に連絡しましょう。</p>
+    <h3>計算方法で金額は変わる？</h3>
+    <p>その月の日数で割るか、30日で割るかで、数百円〜千円程度変わることがあります。どの方法かは契約書に書かれています。</p>
+  </div>
+
+  <div class="card" id="related"></div>
+
+  <footer>1円未満は切り捨てています。実際の金額は契約内容によって異なります。</footer>
+</div>
+
+<script src="../assets/site.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const tt = new Date();
+$("date").value = ymd(new Date(tt.getFullYear(), tt.getMonth() + 1, 20));
+$("type").addEventListener("change", () => { $("dateLabel").textContent = $("type").value === "in" ? "入居日" : "退去日"; });
+
+function calc() {
+  const out = $("result");
+  out.hidden = false;
+  const d = parseDate($("date").value);
+  if (!d || !num("rent")) { out.innerHTML = '<p class="err">日付と家賃を入力してください。</p>'; return; }
+  const monthly = num("rent") + num("fee");
+  const dim = daysInMonth(d);
+  const days = $("type").value === "in" ? dim - d.getDate() + 1 : d.getDate();
+  const base = $("base").value;
+  const divisor = base === "month" ? dim : base === "30" ? 30 : 365;
+  const amount = base === "365" ? Math.floor(monthly * 12 * days / 365) : Math.floor(monthly * Math.min(days, divisor) / divisor);
+  const perDay = base === "365" ? monthly * 12 / 365 : monthly / divisor;
+  out.innerHTML = `
+    <div class="big">
+      <div class="stat warn"><div class="k">日割り家賃</div><div class="v">${yen(amount)}</div></div>
+      <div class="stat"><div class="k">日数</div><div class="v">${days}日分</div></div>
+      <div class="stat"><div class="k">1日あたり</div><div class="v">${yen(perDay)}</div></div>
+    </div>
+    <table class="info">
+      <tr><td>対象の期間</td><td>${d.getMonth() + 1}月${$("type").value === "in" ? `${d.getDate()}日〜${dim}日` : `1日〜${d.getDate()}日`}（${days}日）</td></tr>
+      <tr><td>家賃＋管理費（月額）</td><td class="num">${yen(monthly)}</td></tr>
+      <tr><td>計算式</td><td class="num">${base === "365" ? `${yen(monthly)} × 12 × ${days}日 ÷ 365日` : `${yen(monthly)} × ${days}日 ÷ ${divisor}日`}</td></tr>
+    </table>
+    ${$("type").value === "in" ? '<p class="note">入居時の初期費用の総額は → <a href="/hikkoshi/">賃貸の初期費用 計算</a></p>' : '<p class="note">退去時にかかる修繕費と、敷金がいくら戻るかの目安は → <a href="/hikkoshi/taikyo/">退去費用 計算</a></p>'}`;
+  out.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("calc").addEventListener("click", calc);
+</script>
+</body>
+</html>

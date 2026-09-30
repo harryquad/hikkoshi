@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>引越し費用の目安 計算ツール｜人数・距離・時期（繁忙期）別の相場と安くするコツ</title>
+<meta name="description" content="世帯の人数・移動距離・引越し予定日を選ぶだけで、引越し料金の相場の目安を表示。2〜4月の繁忙期と通常期の差や、引越しの時期をずらすといくら安くなるかもわかる無料ツールです。">
+<link rel="canonical" href="https://harryquad.github.io/hikkoshi/hiyou/">
+<link rel="stylesheet" href="../assets/style.css">
+<style>tr.me td{background:var(--accent-soft);font-weight:700}</style>
+</head>
+<body>
+<header class="site-header"><div><a href="/hikkoshi/">引っ越し・賃貸 かんたん計算</a></div></header>
+<div class="wrap">
+  <h1>引越し費用の目安 計算ツール</h1>
+  <p class="lead">世帯の人数・移動距離・時期から、<strong>引越し料金の相場</strong>を表示します。<strong>2〜4月の繁忙期</strong>は料金が上がるため、時期をずらすといくら安くなるかも比べられます。</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field"><label for="who">世帯</label>
+        <select id="who"><option value="s1">単身（荷物が少ない）</option><option value="s2">単身（荷物が多い）</option><option value="f2" selected>2人家族</option><option value="f3">3人家族</option><option value="f4">4人家族</option></select></div>
+      <div class="field"><label for="dist">移動距離</label>
+        <select id="dist"><option value="0">〜15km未満（同じ市区町村内など）</option><option value="1">〜50km未満（同じ都道府県内など）</option><option value="2">〜200km未満（近くの県など）</option><option value="3">〜500km未満（東京〜大阪など）</option><option value="4">500km以上</option></select></div>
+    </div>
+    <div class="field"><label for="date">引越し予定日</label><input type="date" id="date"></div>
+    <button id="calc">相場を見る</button>
+  </div>
+
+  <div class="card" id="result" hidden></div>
+
+  <div class="ad">広告スペース</div>
+
+  <div class="card faq">
+    <h2>引越し費用のよくある質問</h2>
+    <h3>引越しがいちばん高い時期は？</h3>
+    <p>新生活が始まる3月下旬〜4月上旬がいちばん高く、2〜4月は全体的に高くなります。反対に、5〜1月（特に11月・12月の平日）は安くなりやすい時期です。</p>
+    <h3>引越し費用を安くするには？</h3>
+    <p>複数の引越し業者に見積もりを取って比べるのがいちばん効果的です。ほかにも、平日や午後の便・フリー便を選ぶ、荷物を減らす、繁忙期を避けるといった方法があります。</p>
+    <h3>この相場はどれくらい正確？</h3>
+    <p>表示している金額は、実際に引越しをした人の口コミ（見積もり額）の平均です。荷物の量、建物の階数やエレベーターの有無、オプション（エアコンの取り外しなど）によって大きく変わるので、正確な金額は見積もりで確認してください。</p>
+  </div>
+
+  <div class="card" id="related"></div>
+
+  <footer>相場は「SUUMO引越し見積もり」の口コミデータ（2025年9月時点）の平均値を参考にしています。繁忙期は2〜4月、通常期は5〜1月です。</footer>
+</div>
+
+<script src="../assets/site.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const tt = new Date();
+$("date").value = ymd(new Date(tt.getFullYear() + (tt.getMonth() >= 2 ? 1 : 0), 2, 20));
+// [通常期, 繁忙期] × 距離（〜15, 〜50, 〜200, 〜500, 500以上）
+const SOBA = {
+  s1: [[49847, 47160, 61648, 69369, 89162], [55007, 61709, 80415, 91210, 115894]],
+  s2: [[63829, 69035, 96690, 116781, 120243], [76562, 82711, 106941, 142590, 173602]],
+  f2: [[79098, 91936, 128929, 153311, 188217], [102273, 121358, 158622, 191143, 253392]],
+  f3: [[99045, 114663, 159268, 173201, 223202], [133112, 157146, 198174, 250670, 321251]],
+  f4: [[136620, 153867, 199271, 242180, 299614], [179723, 211551, 258092, 333412, 422429]],
+};
+const DIST = ["〜15km", "〜50km", "〜200km", "〜500km", "500km以上"];
+
+function calc() {
+  const out = $("result");
+  out.hidden = false;
+  const d = parseDate($("date").value);
+  if (!d) { out.innerHTML = '<p class="err">引越し予定日を入力してください。</p>'; return; }
+  const who = $("who").value, dist = Number($("dist").value);
+  const busy = d.getMonth() >= 1 && d.getMonth() <= 3;
+  const normal = SOBA[who][0][dist], peak = SOBA[who][1][dist];
+  const mine = busy ? peak : normal;
+  const weekday = d.getDay() !== 0 && d.getDay() !== 6;
+
+  out.innerHTML = `
+    <div class="big">
+      <div class="stat warn"><div class="k">相場の目安（${busy ? "繁忙期" : "通常期"}）</div><div class="v">${yen(mine)}</div></div>
+      <div class="stat"><div class="k">見積もりの幅の目安</div><div class="v">${yen(Math.round(mine * 0.7 / 1000) * 1000)}〜${yen(Math.round(mine * 1.3 / 1000) * 1000)}</div></div>
+      <div class="stat ${busy ? "good" : ""}"><div class="k">${busy ? "5月以降にずらすと" : "繁忙期（2〜4月）だと"}</div><div class="v">${busy ? "約" + yen(peak - normal) + "安く" : "約" + yen(peak - normal) + "高く"}</div></div>
+    </div>
+    <table class="info">
+      <tr><th>距離</th><th class="num">通常期（5〜1月）</th><th class="num">繁忙期（2〜4月）</th></tr>
+      ${DIST.map((n, i) => `<tr class="${i === dist ? "me" : ""}"><td>${n}</td><td class="num">${yen(SOBA[who][0][i])}</td><td class="num">${yen(SOBA[who][1][i])}</td></tr>`).join("")}
+    </table>
+    <p class="note">${fmtDate(d)}は${weekday ? "平日なので、土日より安くなりやすい日です。" : "土日なので、平日より高くなりやすい日です。平日にできるなら見積もりで比べてみましょう。"}${busy && d.getMonth() === 2 && d.getDate() >= 20 ? " 3月下旬は1年でいちばん混み合う時期で、予約が取りにくくなります。早めに見積もりを依頼しましょう。" : ""}</p>
+    <p class="note">引越し料金は業者によって数万円変わることがあります。<strong>複数の業者に一括で見積もりを依頼</strong>して比べるのが、いちばん確実に安くする方法です。</p>
+    <p class="note">引越し前後の手続きは → <a href="/hikkoshi/yarukoto/">引っ越し やることリスト</a></p>`;
+  out.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("calc").addEventListener("click", calc);
+</script>
+</body>
+</html>
